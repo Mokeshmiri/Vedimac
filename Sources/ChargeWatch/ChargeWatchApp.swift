@@ -4,6 +4,10 @@ import SwiftUI
 struct VedimacApp: App {
     @StateObject private var model = AppModel()
 
+    init() {
+        DockPresence.apply()
+    }
+
     var body: some Scene {
         Window("Vedimac", id: "dashboard") {
             DashboardView()

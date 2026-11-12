@@ -319,6 +319,13 @@ struct ExportView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Toggle("Show Vedimac in the Dock", isOn: Binding(
+                get: { model.showInDock },
+                set: { model.setShowInDock($0) }))
+            Text("Off: Vedimac lives only in the menu bar. Open the dashboard from the battery icon. On: it also appears in the Dock and Cmd-Tab.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             MetricRow(label: "macOS", value: "\(model.osVersion) (\(model.build))", source: .publicAPI)
             MetricRow(label: "Last boot", value: model.bootTime.map { Fmt.dateTime($0) }, source: .publicAPI)
         }

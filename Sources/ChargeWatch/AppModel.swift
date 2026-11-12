@@ -31,6 +31,12 @@ final class AppModel: ObservableObject {
     @Published var historyRange: HistoryRange = .day
     @Published var redactExports = true
     @Published var launchAtLogin = LoginItem.isEnabled
+    @Published var showInDock = DockPresence.showInDock
+
+    func setShowInDock(_ value: Bool) {
+        DockPresence.save(value)
+        showInDock = value
+    }
 
     let build = SystemInfo.build
     let osVersion = SystemInfo.version

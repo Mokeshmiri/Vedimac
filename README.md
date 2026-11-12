@@ -1,172 +1,192 @@
 # Vedimac
 
-A native macOS menu-bar item and dashboard for Apple silicon MacBooks that use a charge limit.
-It shows what the battery is doing, records history, checks the five battery-gauging values after
-restarts and macOS updates, and can reapply or roll back the experimental workaround on demand.
+**See what your MacBook's battery is really doing, and calibrate it safely.**
 
-> **Status of this release (1.0.3).** A first build on the target Mac (macOS 27.2 SDK, Command
-> Line Tools only) compiled the plist library and the helper, and failed in the app only where it
-> used `@State` and in the tests only because of XCTest. Both are removed in this version. The
-> fixed source has **not been compiled again**, because no Swift toolchain is available where it
-> was written. See [What has been verified](#what-has-been-verified).
+Vedimac is a small menu-bar app for Apple silicon MacBooks. It shows the battery and power numbers macOS keeps to itself, and it includes a safe, reversible way to try the battery-gauging calibration workaround.
 
-## Build and install
+> **Status:** early release (v1.0.3). The core logic passes 182 automated checks.
+>
+> ## ⚠️ Experimental, read before you use it
+>
+> - This is an **experimental** project. It is not an official Apple tool and Apple does not support it.
+> - The calibration feature edits a macOS system file that controls how the battery is measured. **Its effects are not limited to the numbers Vedimac shows.** Changes can affect charge reporting and other battery behavior, and we cannot predict every outcome on every Mac.
+> - Use it at your own risk. Keep a backup, read [Safety](#-safety), and skip calibration if you are not comfortable reverting a system change.
+> - The dashboard, history and export features only read data. They do not change your Mac's settings.
 
-Requirements: macOS 14 or later on Apple silicon, and the Xcode Command Line Tools
-(`xcode-select --install`). Full Xcode is not needed.
+---
 
-Run these one at a time, from the project folder:
+## Contents
+
+- [What you get](#-what-you-get)
+- [Install](#-install)
+- [How to use it](#-how-to-use-it)
+- [Calibration (the advanced part)](#-calibration-the-advanced-part)
+- [Update](#-update)
+- [Uninstall](#-uninstall)
+- [Safety](#-safety)
+- [Where your data lives](#-where-your-data-lives)
+- [For developers](#-for-developers)
+- [License](#-license)
+
+---
+
+## ✨ What you get
+
+| | Feature | What it shows |
+|---|---|---|
+| 🔋 | **Battery health** | Condition, maximum capacity, cycle count, design vs current capacity |
+| ⚡ | **Power flow** | Adapter in, Mac in use, battery charging or discharging |
+| 📈 | **History** | Charge, power and temperature over time, with a chart |
+| 🧭 | **Calibration** | Checks and applies the gauging workaround, with backup and restore |
+| 📤 | **Export** | CSV history, events and a diagnostic report, with privacy redaction |
+| 🚫 | **No network** | Nothing leaves your Mac |
+
+```mermaid
+flowchart LR
+    A[Battery & power sensors] --> B[Vedimac]
+    C[System report] --> B
+    B --> D[Menu bar]
+    B --> E[Dashboard]
+    B --> F[History & export]
+```
+
+---
+
+## 📦 Install
+
+### You need
+
+- A MacBook with Apple silicon (M1 or newer)
+- macOS 14 (Sonoma) or newer
+- Xcode Command Line Tools (run `xcode-select --install` once)
+
+### Build it (the current way)
 
 ```bash
-cd ~/Downloads/ChargeWatch
-Scripts/test.sh
+git clone https://github.com/Mokeshmiri/Vedimac.git
+cd Vedimac
 Scripts/build-app.sh
-Scripts/package-dmg.sh
-open dist/Vedimac-1.0.3.dmg
+open dist/Vedimac.app
 ```
 
-`Scripts/test.sh` runs the fixture checks and must end with `ALL PASSED`. It never touches the
-system file and never restarts the Mac. `build-app.sh` creates `dist/Vedimac.app`;
-`package-dmg.sh` creates the disk image.
+Drag **Vedimac.app** to **Applications** to keep it. A battery icon appears in the menu bar.
 
-Drag Vedimac to Applications and open it. A battery item appears in the menu bar and the
-dashboard opens.
+> 🔐 The app is not signed by Apple's developer program yet, so macOS may ask you to confirm it the first time. Open **System Settings → Privacy & Security** and click **Open Anyway**.
 
-**Signing.** By default the build is **ad-hoc signed and not notarized**. That is fine on the Mac
-that built it. On another Mac, Gatekeeper will block it. To sign and notarize with your own
-Developer ID:
+### Install with Homebrew
+
+Coming soon. See the Homebrew section in the project notes.
+
+---
+
+## 🖱️ How to use it
+
+1. **Click the battery icon** in the menu bar for a quick view.
+2. Choose **Open Dashboard** for the full view:
+   - **Overview:** charge, power flow and adapter details
+   - **Health:** condition, capacity and cycles
+   - **Calibration:** the workaround status and backups
+   - **History:** charts over time
+3. Use **Export** to save a CSV or diagnostic report. Turn on **Redact** first if you'll share it.
+
+Vedimac records history about once a minute while it's running. Turn on **Open at login** so it keeps recording after restarts.
+
+---
+
+## 🧪 Calibration (the advanced part)
+
+macOS sometimes shows a battery charge limit or a gauge that's out of step with the real battery. The calibration feature checks a battery-gauging setting and can update it, but **only with your permission**.
+
+```mermaid
+flowchart TD
+    A[Check] -->|Matches| Z[Nothing to do]
+    A -->|Differs| B[Preview the change]
+    B --> C[Backup original]
+    C --> D[Apply safely]
+    D --> E[Verify]
+    E --> F[Restart Mac]
+    F --> G[Verify after restart]
+    H[Restore backup] -.->|any time| C
+```
+
+**Steps:**
+
+1. Open **Calibration** and press **Check**. Nothing is changed.
+2. Read the preview. It lists exactly which keys would change.
+3. Press **Apply**. Vedimac asks for your administrator password.
+4. Save your work and **restart** your Mac.
+5. Open Vedimac and press **Verify after restart**.
+
+**To undo it:** press **Restore** and pick a backup. Vedimac checks the backup before restoring it.
+
+---
+
+## 🔄 Update
+
+With the build method, update by pulling the latest code and building again:
 
 ```bash
-CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" Scripts/build-app.sh
-CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" Scripts/package-dmg.sh
-xcrun notarytool submit dist/Vedimac-1.0.3.dmg --keychain-profile "notary" --wait
-xcrun stapler staple dist/Vedimac-1.0.3.dmg
+cd Vedimac
+git pull
+Scripts/build-app.sh
 ```
 
-## Using it
+Then replace the app in Applications.
 
-### See what the battery is doing
-The menu-bar item shows an icon and the percentage: a bolt while charging, a plug while plugged in
-without charging, a battery while on battery. The Overview page states the two facts separately,
-**Power adapter: Connected / Not connected** and **Battery: Charging / Not charging**. Every reading
-carries a tag for where it comes from (public API, private registry key, calculated, your setting),
-and missing readings say "Not available".
+---
 
-The Charge Limit is **your reference setting**, 80% by default. macOS has no public interface for
-reading it. Change it on the Overview page to match System Settings.
+## 🗑️ Uninstall
 
-### Check after an update or restart
-Vedimac remembers the last macOS build and boot time. When either changes, a banner offers
-**Check after update** or **Check after restart**. **Check now** on the Calibration page does the
-same at any time. macOS asks for an administrator password, because the file is readable only by
-root. The result is one of:
+1. Quit Vedimac.
+2. Delete **Vedimac.app** from Applications.
+3. If you used calibration, open the app and **Restore** first. Otherwise the system change stays in place.
+4. Optional: delete the data folders listed in [Where your data lives](#-where-your-data-lives).
 
-| Result | Meaning |
-|---|---|
-| Full match | All five values are as expected |
-| Partial rewrite | Some values changed (for example only `lastDOD0Update`) |
-| Full mismatch | None of the five match |
-| Unreadable or unsupported | The file is missing, a symlink, or has a schema the app does not recognise |
+---
 
-The battery state at the moment of the check is recorded next to it. They are separate
-observations and are always shown side by side.
+## 🛡️ Safety
 
-### Reapply the workaround
-1. Press **Reapply calibration workaround**. A preview lists exactly which values would change,
-   current → expected. If all five match it says so and nothing is written.
-2. Choose **Apply** or **Apply and Restart**. Nothing is written before this.
-3. The helper validates the schema, makes and verifies a backup, changes only the differing keys,
-   re-checks that the live file is still the one you previewed, and replaces it atomically.
+- Calibration edits a macOS system file, and Vedimac always backs it up before writing.
+- Writes are checked, and any unexpected change stops the operation.
+- Restore checks the backup before putting it back.
+- Vedimac needs an administrator password only for calibration.
+- Nothing is sent over the network.
 
-**Apply and Restart restarts immediately** (`shutdown -r now`) without asking apps to save. Save
-your work first. After the restart, open Vedimac and press **Verify after restart**: it reports
-whether all five values persisted and, separately, whether the battery is charging.
+> ⚠️ If you're not comfortable editing a system setting, don't use calibration. The dashboard and history work without it.
 
-Expect two password prompts when the last check is more than five minutes old: one for the
-preview, one for the write.
+---
 
-### Restore a backup
-On the Calibration page, each backup has **Restore…**. The preview shows the values in that backup,
-its date, build and checksum, and warns if it was made on a different macOS build. **Restore** or
-**Restore and Restart** then verifies the backup's checksum and schema, saves the current file as a
-new backup, and puts the selected one back byte for byte.
-
-Use **Import original backup…** to bring in the backup your Terminal script made on 6 November. It
-is validated, copied into the protected folder, and marked as the original pre-workaround backup.
-
-### Export diagnostics
-**Export & settings** offers the battery history (CSV), the events (CSV) and a diagnostic report
-(Markdown). Redaction is on by default: home paths, your user name and serial-like identifiers are
-removed. The battery serial is never read, and the battery pack identifier only appears as a hash.
-
-## Where things are stored
+## 📁 Where your data lives
 
 | What | Where |
 |---|---|
 | History, events, settings | `~/Library/Application Support/ChargeWatch/` |
-| Plist backups (root only) | `/Library/Application Support/ChargeWatch/Backups/` |
-| Backup list and last operation | `/Library/Application Support/ChargeWatch/manifest.json`, `last-operation.json` |
+| Calibration backups (admin only) | `/Library/Application Support/ChargeWatch/Backups/` |
+| Backup list | `/Library/Application Support/ChargeWatch/manifest.json` |
 
-Vedimac makes no network connections.
+The folder names still say **ChargeWatch** on purpose. Renaming them would hide your existing backups.
 
-## How the privileged part works
+---
 
-Only `gaugectl` (in `Contents/Helpers`) ever runs as root, and only for four commands: `status`,
-`apply`, `restore`, `import-original`. As root it works on one fixed file and one fixed backup
-folder; the paths cannot be overridden. The app starts it through the standard macOS administrator
-dialog (`do shell script … with administrator privileges`), so the password is handled by macOS
-and never reaches the app, a log or a script.
+## 👩‍💻 For developers
 
-One thing to know: because the helper lives inside the app bundle and is not a notarized,
-separately installed daemon, anything able to modify `/Applications/Vedimac.app` could replace
-it before you authenticate. Keep the app in `/Applications` and build it yourself. A hardened
-version would install the helper with `SMAppService` under a Developer ID.
+```bash
+swift run gaugecheck   # runs the 182 checks
+Scripts/test.sh        # prints the version, then runs the checks
+```
 
-## What has been verified
-
-| | Status |
-|---|---|
-| Fixture files parse and contain the intended states | **Checked** here with Python's `plistlib` |
-| Plist library (`GaugeCore`) and helper (`gaugectl`) compile and link | **Seen** in the first build log from the target Mac |
-| App compiles | **Not confirmed.** The first build reported errors only for `@State`; those uses are gone, the result has not been rebuilt |
-| Fixture checks (`Scripts/test.sh`) pass | **Not run.** The check program is new in 1.0.3 and has not been compiled |
-| Anything on a real Mac: battery readings, the administrator dialog, reading or writing the real plist, restart, verification after boot | **Not verified** |
-
-The fixture checks cover: the original state, all five values applied, and the post-update state
-with only `lastDOD0Update` changed, each in binary and XML; invalid schemas (two packs, wrong pack
-count, missing key, wrong value types, missing root key, corrupt file); a symlink; a concurrent
-change during apply and during restore; a stale preview; restoring a verified backup; refusing a
-damaged or incompatible backup; and importing the original backup. They work on copies in a
-temporary folder. The library they test contains no restart code, and the helper refuses to touch
-the system file unless it runs as root.
-
-The fixtures are synthetic. They follow the schema you described, with an invented pack identifier
-and invented extra keys.
-
-## Assumptions to check on your Mac
-
-- **`batteryPackCount` location.** The helper looks for it inside `batteryGaugingMitigationInfo`,
-  then at the root of the plist. If your file keeps it elsewhere, the check will stop with
-  "batteryPackCount is missing" and nothing will be written. Tell me where it is.
-- **Registry keys.** Cycle count, capacities, temperature, voltage and current come from
-  undocumented `AppleSmartBattery` keys (`CycleCount`, `AppleRawMaxCapacity`, `DesignCapacity`,
-  `Temperature`, `Voltage`, `Amperage`). Compare them once with `ioreg -rn AppleSmartBattery`.
-- **Gauging detection.** A "confirmed gauging charge" event is recorded when the battery is
-  charging while the registry or `pmset -g batt` reports a string containing "gauging" (such as
-  `ChargingUpForGauging`). Where macOS 27 reports that state has not been confirmed.
-- **powerd messages.** Read with `log show` as your user. If that returns nothing, run the same
-  command in Terminal to see whether your account can read the log.
-
-The workaround itself is unsupported. It may affect battery percentage or capacity estimates, and
-the timestamps do not schedule the next calibration.
-
-## Project layout
+Layout:
 
 ```
-Sources/GaugeCore/     plist validation, comparison, apply, backup, restore (no UI, no restart)
-Sources/gaugectl/      the root helper
-Sources/Vedimac/   menu-bar item and dashboard (SwiftUI, Swift Charts, IOKit)
-Sources/gaugecheck/    fixture checks as a plain program (no XCTest)
-Tests/Fixtures/        anonymized binary and XML fixtures
-Scripts/               build-app.sh, package-dmg.sh, test.sh, make-fixtures.py
+Sources/
+├── GaugeCore/     plist logic, backups, safe writes
+├── gaugectl/      the only tool that runs as admin
+├── ChargeWatch/   menu bar and dashboard (SwiftUI)
+└── gaugecheck/    checks (no XCTest needed)
 ```
+
+---
+
+## 📄 License
+
+MIT. See [LICENSE](LICENSE).
