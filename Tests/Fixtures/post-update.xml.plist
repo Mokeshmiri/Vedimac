@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>batteryGaugingMitigationInfo</key>
+	<dict>
+		<key>batteryPackCount</key>
+		<integer>1</integer>
+		<key>batteryPackData</key>
+		<dict>
+			<key>FIXTUREPACK0000001</key>
+			<dict>
+				<key>fixtureCycleCountAtLastUpdate</key>
+				<integer>212</integer>
+				<key>fixtureQMaxHistory</key>
+				<array>
+					<integer>4381</integer>
+					<integer>4377</integer>
+					<integer>4370</integer>
+				</array>
+				<key>fixtureRatio</key>
+				<real>0.5</real>
+				<key>lastDOD0Update</key>
+				<date>2026-11-09T08:31:17Z</date>
+				<key>lastQMaxUpdate</key>
+				<date>2030-01-01T00:00:00Z</date>
+				<key>lastQualQMaxDate</key>
+				<date>2030-01-01T00:00:00Z</date>
+			</dict>
+		</dict>
+		<key>fixtureFlag</key>
+		<true/>
+		<key>fixtureNote</key>
+		<string>synthetic fixture</string>
+		<key>fixtureOne</key>
+		<integer>1</integer>
+		<key>lastFullChargeDate</key>
+		<date>2030-01-01T00:00:00Z</date>
+		<key>lastFullChargeReq</key>
+		<false/>
+	</dict>
+	<key>fixtureSchemaVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
