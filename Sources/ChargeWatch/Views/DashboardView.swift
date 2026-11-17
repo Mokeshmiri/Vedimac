@@ -266,6 +266,8 @@ struct CalibrationSummaryCard: View {
 struct ExportView: View {
     @EnvironmentObject var model: AppModel
 
+    private let updateCommand = "brew update && brew upgrade --cask Mokeshmiri/tap/vedimac"
+
     var body: some View {
         Card(title: "Export", symbol: "square.and.arrow.up") {
             Toggle("Redact personal paths, user name and serial-like identifiers", isOn: $model.redactExports)
@@ -310,6 +312,22 @@ struct ExportView: View {
         }
 
         Card(title: "Settings", symbol: "gearshape") {
+            if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+                LabeledContent("Vedimac version", value: version)
+            }
+            Text("If you installed Vedimac with Homebrew, quit the app and run this command in Terminal.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Text(updateCommand)
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+            Button("Copy update command") {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(updateCommand, forType: .string)
+            }
+            Divider()
+
             Toggle("Open Vedimac at login", isOn: Binding(
                 get: { model.launchAtLogin },
                 set: { newValue in
