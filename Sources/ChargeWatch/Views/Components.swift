@@ -231,6 +231,12 @@ struct PromptBanner: View {
     @EnvironmentObject var model: AppModel
     let prompt: CheckPrompt
 
+    private var detail: String {
+        let state = model.reading.state.title.lowercased()
+        let suffix = model.reading.percent.map { " at \($0)%." } ?? "."
+        return "\(prompt.detail) Battery right now: \(state)\(suffix)"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.arrow.triangle.2.circlepath")
@@ -239,8 +245,7 @@ struct PromptBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(prompt.buttonTitle)
                     .font(.headline)
-                Text(prompt.detail + " Battery right now: " + model.reading.state.title.lowercased()
-                     + (model.reading.percent.map { " at \($0)%." } ?? "."))
+                Text(detail)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
