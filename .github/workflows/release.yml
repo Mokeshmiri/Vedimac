@@ -1,0 +1,94 @@
+name: Release Vedimac
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check tag and build app
+        shell: bash
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$GITHUB_REF_NAME" == "v$version" ]]
+          [[ "$(uname -m)" == arm64 ]]
+          Scripts/test.sh
+          Scripts/build-app.sh
+          ditto -c -k --keepParent dist/Vedimac.app "dist/Vedimac-$version.zip"
+
+      - name: Publish ZIP and calculate its checksum
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          archive="Vedimac-$version.zip"
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" "dist/$archive" \
+              --verify-tag --title "Vedimac $GITHUB_REF_NAME" --generate-notes
+          fi
+
+          # Use the published bytes so a rerun preserves the original checksum.
+          published="$RUNNER_TEMP/$archive"
+          gh release download "$GITHUB_REF_NAME" --pattern "$archive" --output "$published"
+          bundle_version=$(unzip -p "$published" Vedimac.app/Contents/Info.plist |
+            plutil -extract CFBundleShortVersionString raw -)
+          [[ "$bundle_version" == "$version" ]]
+          checksum=$(shasum -a 256 "$published" | cut -d ' ' -f 1)
+          printf 'version=%s\nsha256=%s\n' "$version" "$checksum" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: Mokeshmiri/homebrew-tap
+          ref: main
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update the cask
+        working-directory: homebrew-tap
+        shell: bash
+        env:
+          VEDIMAC_VERSION: ${{ steps.release.outputs.version }}
+          VEDIMAC_SHA256: ${{ steps.release.outputs.sha256 }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("Casks/vedimac.rb")
+          contents = path.read_text()
+          version = os.environ["VEDIMAC_VERSION"]
+          checksum = os.environ["VEDIMAC_SHA256"]
+          version_line = r'^  version "([0-9]+\.[0-9]+\.[0-9]+)"$'
+          sha_line = r'^  sha256 "[0-9a-f]{64}"$'
+          current = re.findall(version_line, contents, re.MULTILINE)
+          if len(current) != 1 or len(re.findall(sha_line, contents, re.MULTILINE)) != 1:
+              raise SystemExit("Expected one version and one SHA-256 in the cask")
+          if tuple(map(int, current[0].split("."))) > tuple(map(int, version.split("."))):
+              raise SystemExit("The cask already tracks a newer release")
+          contents = re.sub(version_line, f'  version "{version}"', contents, flags=re.MULTILINE)
+          contents = re.sub(sha_line, f'  sha256 "{checksum}"', contents, flags=re.MULTILINE)
+          path.write_text(contents)
+          PY
+          if git diff --quiet -- Casks/vedimac.rb; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Casks/vedimac.rb
+          git commit -m "Update Vedimac to $VEDIMAC_VERSION"
+          git push origin HEAD:main
