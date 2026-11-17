@@ -26,16 +26,26 @@ struct VedimacApp: App {
     }
 }
 
-/// The menu-bar item: an icon that reflects the power state, plus the percentage.
+/// A compact menu-bar label for the current power state.
 struct MenuBarLabel: View {
     let reading: BatteryReading
 
     var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: reading.state.symbol)
+        switch reading.state {
+        case .discharging:
             if let percent = reading.percent {
                 Text("\(percent)%")
+                    .accessibilityLabel("On battery, \(percent) percent")
+            } else {
+                powerStateIcon
             }
+        default:
+            powerStateIcon
         }
+    }
+
+    private var powerStateIcon: some View {
+        Image(systemName: reading.state.symbol)
+            .accessibilityLabel(Text(reading.state.title))
     }
 }
