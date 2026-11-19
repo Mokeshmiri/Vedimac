@@ -7,7 +7,7 @@ Vedimac is a free, open-source battery monitor for Apple silicon MacBooks. View 
 Built after investigating why macOS sometimes ignored the native charge limit, Vedimac also includes an experimental battery-gauging workaround with preview, backup, and restore.
 
 [Download the latest release](https://github.com/Mokeshmiri/Vedimac/releases/latest) · [Report a bug](https://github.com/Mokeshmiri/Vedimac/issues)
-<img width="1280" height="949" alt="Screenshot 2026-11-19 at 3 15 34 PM copy" src="https://github.com/user-attachments/assets/6be9664e-3325-44b4-9a9d-e9531a839c58" />
+<img width="1280" height="949" alt="Vedimac dashboard showing battery health, charging status, power readings, and adapter details" src="https://github.com/user-attachments/assets/6be9664e-3325-44b4-9a9d-e9531a839c58" />
 
 
 ## Features
